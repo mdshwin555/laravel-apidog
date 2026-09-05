@@ -467,7 +467,9 @@ class CollectionBuilder
                 '});',
             ];
         } elseif ($route['method'] === 'POST' && $route['name'] && $this->createsResource($route['name'])) {
-            $variable = Str::snake(Str::singular(Str::afterLast(Str::beforeLast($route['name'], '.'), '.')));
+            // Stored as `id` so the show and update requests that follow can
+            // use it without being told which resource it came from.
+            $variable = 'id';
             $this->variables[] = $variable;
 
             $exec = [

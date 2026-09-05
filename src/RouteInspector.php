@@ -79,8 +79,17 @@ class RouteInspector
      */
     private function pathParams(Route $route): array
     {
-        return collect($route->parameterNames())
-            ->map(fn ($p) => ['name' => $p, 'variable' => Str::snake($p)])
+        $names = $route->parameterNames();
+
+        // One parameter is `id`, which is what a reader expects and what the
+        // create request stores. Two or more keep their own names, because
+        // two `{{id}}` in one URL would collide.
+        if (count($names) === 1) {
+            return [['name' => $names[0], 'variable' => 'id']];
+        }
+
+        return collect($names)
+            ->map(fn ($p) => ['name' => $p, 'variable' => Str::snake($p).'_id'])
             ->all();
     }
 
