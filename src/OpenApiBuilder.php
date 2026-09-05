@@ -274,13 +274,17 @@ class OpenApiBuilder
         $examples = $this->examples->forRoute($route);
         $ok = $route['method'] === 'POST' ? '201' : '200';
 
+        // Ordered by status so the Responses panel reads in the order a
+        // developer scans it, rather than in the order the cases were added.
         $map = [
             'success' => [$ok, 'Envelope'],
-            'validation_failed' => ['422', 'ValidationError'],
+            'bad_request' => ['400', 'Error'],
             'unauthenticated' => ['401', 'Error'],
             'forbidden' => ['403', 'Error'],
             'not_found' => ['404', 'Error'],
+            'validation_failed' => ['422', 'ValidationError'],
             'rate_limited' => ['429', 'Error'],
+            'server_error' => ['500', 'Error'],
         ];
 
         $responses = [];

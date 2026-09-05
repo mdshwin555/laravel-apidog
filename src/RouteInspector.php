@@ -5,6 +5,7 @@ namespace Hawasly\ApiSpec;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Str;
+use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
 
@@ -35,7 +36,90 @@ class RouteInspector
             'path_params' => $this->pathParams($route),
             'body' => $this->body($route),
             'has_files' => $this->hasFiles($route),
+            'query_builder' => $this->usesQueryBuilder($route),
         ];
+    }
+
+    /**
+     * Whether the endpoint filters or sorts through spatie/laravel-query-builder,
+     * which answers an unsupported sort or filter with a 400 rather than a 422.
+     *
+     * The controller alone is not enough to tell: the query is usually built one
+     * layer down, in the repository or service the controller is handed. So the
+     * constructor's dependencies are read too — one level, no deeper, because
+     * that is where the pattern lives and anything further would be guessing.
+     */
+    private function usesQueryBuilder(Route $route): bool
+    {
+        if (! class_exists(\Spatie\QueryBuilder\QueryBuilder::class)) {
+            return false;
+        }
+
+        $action = $route->getAction('uses');
+
+        if (! is_string($action) || ! str_contains($action, '@')) {
+            return false;
+        }
+
+        [$controller] = explode('@', $action);
+
+        if (! class_exists($controller)) {
+            return false;
+        }
+
+        foreach ($this->sourcesFor($controller) as $source) {
+            // The import is the reliable marker. A repository often declares its
+            // allowed sorts as AllowedSort objects and hands them to a base class
+            // that makes the actual QueryBuilder call, so looking only for the
+            // call itself misses the very endpoints that use it most.
+            if (preg_match('/Spatie\\\\QueryBuilder|QueryBuilder::for|allowedSorts|allowedFilters/', $source)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<int,string> the class's own source, plus that of each class
+     *                           its constructor asks for
+     */
+    private function sourcesFor(string $class): array
+    {
+        $sources = [];
+
+        try {
+            $reflection = new ReflectionClass($class);
+
+            if ($file = $reflection->getFileName()) {
+                $sources[] = (string) file_get_contents($file);
+            }
+
+            foreach ($reflection->getConstructor()?->getParameters() ?? [] as $param) {
+                $type = $param->getType();
+
+                if (! $type instanceof \ReflectionNamedType || $type->isBuiltin()) {
+                    continue;
+                }
+
+                $dependency = new ReflectionClass($type->getName());
+
+                // The dependency and everything it inherits: a repository that
+                // extends a shared base is the common shape, and the query is
+                // as often in the base as in the child.
+                while ($dependency) {
+                    if ($dependencyFile = $dependency->getFileName()) {
+                        $sources[] = (string) file_get_contents($dependencyFile);
+                    }
+
+                    $dependency = $dependency->getParentClass() ?: null;
+                }
+            }
+        } catch (\Throwable) {
+            return $sources;
+        }
+
+        return $sources;
     }
 
     private function requiresAuth(array $middleware): bool

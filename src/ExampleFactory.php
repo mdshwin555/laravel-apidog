@@ -64,6 +64,26 @@ class ExampleFactory
             ];
         }
 
+        // A query-builder endpoint rejects an unknown sort or filter with a 400,
+        // not the 422 a body would give: the failure is in the query string and
+        // never reaches validation.
+        if (! empty($route['query_builder'])) {
+            $examples['bad_request'] = [
+                'summary' => '400 — an unsupported sort or filter was requested',
+                'value' => [
+                    'message' => 'Requested sort(s) `unknown` is not allowed.',
+                    'status_code' => 0,
+                ],
+            ];
+        }
+
+        // Any endpoint can fail unexpectedly, and a client never shown the shape
+        // will parse the 500 as though it were a result.
+        $examples['server_error'] = [
+            'summary' => '500 — an unexpected server error',
+            'value' => ['message' => 'Something went wrong. Please try again later.', 'status_code' => 0],
+        ];
+
         return $examples;
     }
 
