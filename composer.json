@@ -1,0 +1,46 @@
+{
+    "name": "hawasly/laravel-apidog",
+    "description": "Zero-config OpenAPI and Postman generator for Laravel, grouped by audience: endpoints, auth, request bodies and response examples for every case, derived from your routes and form requests.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "openapi",
+        "apidog",
+        "postman",
+        "swagger",
+        "api",
+        "documentation"
+    ],
+    "authors": [
+        {
+            "name": "Hawasly",
+            "email": "hawasly.team@gmail.com"
+        }
+    ],
+    "homepage": "https://gitlab.com/hawasly1/laravel-packages/postman-generator",
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/console": "^10.0|^11.0|^12.0",
+        "illuminate/routing": "^10.0|^11.0|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hawasly\\ApiSpec\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Hawasly\\ApiSpec\\ApiSpecServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "support": {
+        "issues": "https://gitlab.com/hawasly1/laravel-packages/postman-generator/-/issues",
+        "source": "https://gitlab.com/hawasly1/laravel-packages/postman-generator"
+    }
+}
