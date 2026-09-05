@@ -18,7 +18,7 @@
             "email": "hawasly.team@gmail.com"
         }
     ],
-    "homepage": "https://gitlab.com/hawasly1/laravel-packages/postman-generator",
+    "homepage": "https://github.com/mdshwin555/laravel-apidog",
     "require": {
         "php": "^8.1",
         "illuminate/support": "^10.0|^11.0|^12.0",
@@ -40,7 +40,7 @@
     "minimum-stability": "stable",
     "prefer-stable": true,
     "support": {
-        "issues": "https://gitlab.com/hawasly1/laravel-packages/postman-generator/-/issues",
-        "source": "https://gitlab.com/hawasly1/laravel-packages/postman-generator"
+        "issues": "https://github.com/mdshwin555/laravel-apidog/issues",
+        "source": "https://github.com/mdshwin555/laravel-apidog"
     }
 }
