@@ -55,6 +55,13 @@ class RouteInspector
             return false;
         }
 
+        // Only a listing takes a sort or a filter. The detection below reads the
+        // controller as a whole, so without this a `show` on the same controller
+        // would advertise a 400 it can never return.
+        if (! $this->isListing($route)) {
+            return false;
+        }
+
         $action = $route->getAction('uses');
 
         if (! is_string($action) || ! str_contains($action, '@')) {
@@ -78,6 +85,27 @@ class RouteInspector
         }
 
         return false;
+    }
+
+    /**
+     * A GET that returns a collection rather than one record — by the controller
+     * method, by the route name, or by the absence of an identifier in the path.
+     */
+    private function isListing(Route $route): bool
+    {
+        if (! in_array('GET', $route->methods(), true)) {
+            return false;
+        }
+
+        if ($route->getActionMethod() === 'index') {
+            return true;
+        }
+
+        if ($route->getName() && str_ends_with($route->getName(), '.index')) {
+            return true;
+        }
+
+        return $this->pathParams($route) === [];
     }
 
     /**
