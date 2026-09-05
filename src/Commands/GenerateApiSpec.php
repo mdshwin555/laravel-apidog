@@ -4,6 +4,7 @@ namespace Hawasly\ApiSpec\Commands;
 
 use Hawasly\ApiSpec\CollectionBuilder;
 use Hawasly\ApiSpec\OpenApiBuilder;
+use Hawasly\ApiSpec\RoleResolver;
 use Hawasly\ApiSpec\RouteInspector;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
@@ -60,6 +61,10 @@ class GenerateApiSpec extends Command
         $spec = $this->loadSpec($config);
         $format = $this->option('format');
 
+        $roles = new RoleResolver($config);
+        $roles->learn($routes);
+        $config['learned_audiences'] = $roles->learned();
+
         File::ensureDirectoryExists($output);
         $slug = Str::slug($config['name']);
         $dir = rtrim($output, '/\\').DIRECTORY_SEPARATOR;
@@ -67,12 +72,12 @@ class GenerateApiSpec extends Command
 
         if (in_array($format, ['all', 'openapi'], true)) {
             $path = $dir.$slug.'.openapi.json';
-            File::put($path, $this->encode((new OpenApiBuilder($config))->build($routes, $spec)));
+            File::put($path, $this->encode((new OpenApiBuilder($config, $roles))->build($routes, $spec)));
             $written['OpenAPI 3.1'] = $path;
         }
 
         if (in_array($format, ['all', 'postman'], true)) {
-            $builder = new CollectionBuilder($config);
+            $builder = new CollectionBuilder($config, $roles);
             $collection = $dir.$slug.'.postman_collection.json';
             $environment = $dir.$slug.'.postman_environment.json';
 
@@ -203,6 +208,19 @@ class GenerateApiSpec extends Command
 
         foreach ($written as $label => $path) {
             $this->line('  '.str_pad($label, 22).'<fg=green>'.basename($path).'</>');
+        }
+
+        $learned = collect($config['learned_audiences'] ?? [])
+            ->reject(fn ($v, $k) => str_starts_with($k, 'pattern:'));
+
+        if ($learned->isNotEmpty()) {
+            $this->newLine();
+            $this->line('<options=bold>Audiences detected</>');
+
+            foreach ($learned as $segment => $label) {
+                $count = collect($routes)->filter(fn ($r) => str_contains('/'.$r['uri'].'/', '/'.$segment.'/'))->count();
+                $this->line('  <fg=yellow>'.str_pad($label, 20).'</>/'.$segment.'  ('.$count.' endpoints)');
+            }
         }
 
         $this->newLine();

@@ -19,9 +19,9 @@ class OpenApiBuilder
 
     private FieldDescriber $describer;
 
-    public function __construct(private array $config)
+    public function __construct(private array $config, ?RoleResolver $roles = null)
     {
-        $this->roles = new RoleResolver($config);
+        $this->roles = $roles ?? new RoleResolver($config);
         $this->examples = new ExampleFactory($config);
         $this->describer = new FieldDescriber;
     }

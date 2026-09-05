@@ -80,7 +80,7 @@ class RouteInspector
     private function pathParams(Route $route): array
     {
         return collect($route->parameterNames())
-            ->map(fn ($p) => ['name' => $p, 'variable' => Str::snake($p).'_id'])
+            ->map(fn ($p) => ['name' => $p, 'variable' => Str::snake($p)])
             ->all();
     }
 

@@ -19,21 +19,24 @@ return [
     'spec' => env('API_SPEC_SPEC', 'docs/api-descriptions.php'),
 
     // Folders are grouped by audience first, because that is the question a
-    // developer actually has: an app developer wants the student endpoints and
-    // never the admin ones. Matched in order against the URI and the route
-    // name; the first hit wins.
-    'roles' => [
-        'Guest' => ['*/login', '*/register', '*/public/*', '*/password/*', '*/forgot*', '*/reset*', '*.login', '*.register'],
-        'Admin' => ['*/admin/*', 'admin.*'],
-        'Student' => ['*/user/*', '*/student/*', 'user.*', 'student.*'],
-    ],
+    // developer actually has. The audiences are LEARNED from the route table,
+    // not listed here: a fixed list fits one project and mislabels the rest.
+    //
+    // Override only if the detection gets it wrong. Keys become folder names,
+    // values are matched against the URI and the route name.
+    //
+    //     'roles' => ['Seller' => ['*/seller/*'], 'Buyer' => ['*/buyer/*']],
+    //
+    'roles' => [],
 
-    // Used when no pattern above matched.
-    'role_fallbacks' => [
-        'public' => 'Guest',
-        'admin' => 'Admin',
-        'authenticated' => 'Student',
-    ],
+    // A section becomes an audience when it holds at least this many routes
+    // and this share of the API, and its routes agree about authentication.
+    'audience_min_routes' => 3,
+    'audience_min_share' => 0.05,
+
+    // Used for routes outside any detected section.
+    'public_label' => 'Public',
+    'authenticated_label' => 'Authenticated',
 
     // Dropped from the folder path so the audience name does not repeat inside
     // its own tree.
@@ -46,7 +49,7 @@ return [
         'recount', 'submit', 'start', 'effective', 'marks', 'post', 'multipart',
     ],
 
-    'drop_segments' => ['admin', 'user', 'student', 'guest', 'api'],
+    'drop_segments' => ['api', 'v1', 'v2'],
 
     'exclude' => [
         '_ignition/*',

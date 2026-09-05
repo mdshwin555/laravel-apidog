@@ -23,9 +23,9 @@ class CollectionBuilder
 
     private FieldDescriber $describer;
 
-    public function __construct(private array $config)
+    public function __construct(private array $config, ?RoleResolver $roles = null)
     {
-        $this->roles = new RoleResolver($config);
+        $this->roles = $roles ?? new RoleResolver($config);
         $this->examples = new ExampleFactory($config);
         $this->describer = new FieldDescriber;
     }
@@ -467,8 +467,7 @@ class CollectionBuilder
                 '});',
             ];
         } elseif ($route['method'] === 'POST' && $route['name'] && $this->createsResource($route['name'])) {
-            $resource = Str::snake(Str::singular(Str::before(Str::afterLast(Str::beforeLast($route['name'], '.'), '.'), '.')));
-            $variable = $resource.'_id';
+            $variable = Str::snake(Str::singular(Str::afterLast(Str::beforeLast($route['name'], '.'), '.')));
             $this->variables[] = $variable;
 
             $exec = [
