@@ -193,7 +193,7 @@ php artisan vendor:publish --tag=api-spec-config
 
 ## المتطلبات
 
-PHP 8.1+ · Laravel 10 / 11 / 12
+PHP 8.1+ · Laravel 10 / 11 / 12 / 13
 
 ## الترخيص
 
