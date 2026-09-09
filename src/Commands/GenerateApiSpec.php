@@ -19,7 +19,7 @@ class GenerateApiSpec extends Command
                             {--prefix= : Only routes whose URI starts with this}
                             {--describe : Also write a stub for hand-written descriptions}';
 
-    protected $description = 'Generate an OpenAPI document and a Postman collection from this application routes';
+    protected $description = 'Generate an OpenAPI document, a Postman collection and a JSON Schema file from this application routes';
 
     public function handle(): int
     {
@@ -88,6 +88,13 @@ class GenerateApiSpec extends Command
             $written['Postman environment'] = $environment;
         }
 
+        // Written on every run, alongside whichever format was asked for: the
+        // schemas are what a client generator and a validator consume, and
+        // having to remember a second command is how a file goes stale.
+        $schemas = $dir.$slug.'.schemas.json';
+        File::put($schemas, $this->encode($this->schemaDocument($routes, $config)));
+        $written['JSON Schema'] = $schemas;
+
         if ($this->option('describe')) {
             $this->writeSpecStub($routes, $config, $spec);
         }
@@ -95,6 +102,77 @@ class GenerateApiSpec extends Command
         $this->report($routes, $skipped, $written, $spec, $config);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * A standalone JSON Schema document: the shared envelope shapes, plus one
+     * schema per endpoint that accepts a body.
+     *
+     * Derived from the OpenAPI document rather than rebuilt, so the two can
+     * never describe the same endpoint differently. Emitted as JSON Schema
+     * 2020-12 with local `$defs`, which is what a validator or a client
+     * generator reads without needing the whole API description.
+     */
+    private function schemaDocument(array $routes, array $config): array
+    {
+        $roles = new RoleResolver($config);
+        $roles->learn($routes);
+
+        $openapi = (new OpenApiBuilder($config, $roles))->build($routes);
+        $defs = $openapi['components']['schemas'] ?? [];
+
+        foreach ($openapi['paths'] ?? [] as $path => $operations) {
+            foreach ($operations as $method => $operation) {
+                $content = $operation['requestBody']['content'] ?? null;
+
+                if (! $content) {
+                    continue;
+                }
+
+                $schema = reset($content)['schema'] ?? null;
+
+                if (! $schema) {
+                    continue;
+                }
+
+                $defs[$this->schemaName($method, $path)] = $schema;
+            }
+        }
+
+        ksort($defs);
+
+        // References inside the OpenAPI document point at components/schemas;
+        // in a standalone document they point at $defs.
+        $defs = json_decode(str_replace(
+            '#/components/schemas/',
+            '#/$defs/',
+            json_encode($defs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ), true);
+
+        return [
+            '$schema' => 'https://json-schema.org/draft/2020-12/schema',
+            '$id' => Str::slug($config['name']).'.schemas.json',
+            'title' => $config['name'].' — schemas',
+            'description' => 'Request and envelope schemas, generated from the application routes.',
+            '$defs' => $defs,
+        ];
+    }
+
+    /**
+     * A stable name for an endpoint's request schema: the method and the path,
+     * with parameters read as "By Id" so two endpoints on the same resource do
+     * not collide.
+     */
+    private function schemaName(string $method, string $path): string
+    {
+        $segments = collect(explode('/', trim($path, '/')))
+            ->reject(fn ($s) => $s === '')
+            ->map(fn ($s) => str_starts_with($s, '{')
+                ? 'By'.Str::studly(trim($s, '{}'))
+                : Str::studly($s))
+            ->implode('');
+
+        return Str::studly($method).$segments.'Request';
     }
 
     /**

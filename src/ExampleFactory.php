@@ -20,17 +20,25 @@ class ExampleFactory
     }
 
     /**
-     * @return array<string,array{summary:string,value:array}>
+     * Each case carries its own HTTP status and schema name, so a builder
+     * never has to keep a parallel list that can fall out of step with this
+     * one — adding a case here is enough for every output format.
+     *
+     * @return array<string,array{status:int,schema:string,summary:string,value:array}>
      */
     public function forRoute(array $route): array
     {
         $examples = ['success' => [
+            'status' => $route['method'] === 'POST' ? 201 : 200,
+            'schema' => 'Envelope',
             'summary' => $this->successSummary($route),
             'value' => $this->success($route),
         ]];
 
         if ($route['body']) {
             $examples['validation_failed'] = [
+                'status' => 422,
+                'schema' => 'ValidationError',
                 'summary' => '422 — a required field was missing or invalid',
                 'value' => $this->validationError($route),
             ];
@@ -38,6 +46,8 @@ class ExampleFactory
 
         if ($route['requires_auth']) {
             $examples['unauthenticated'] = [
+                'status' => 401,
+                'schema' => 'Error',
                 'summary' => '401 — no token, or an expired one',
                 'value' => ['message' => 'Unauthenticated. Please log in.', 'status_code' => 0],
             ];
@@ -45,6 +55,8 @@ class ExampleFactory
 
         if ($route['permission']) {
             $examples['forbidden'] = [
+                'status' => 403,
+                'schema' => 'Error',
                 'summary' => '403 — the account lacks '.$route['permission'],
                 'value' => ['message' => 'You do not have permission to perform this action.', 'status_code' => 0],
             ];
@@ -52,6 +64,8 @@ class ExampleFactory
 
         if ($route['path_params']) {
             $examples['not_found'] = [
+                'status' => 404,
+                'schema' => 'Error',
                 'summary' => '404 — the id in the path does not exist',
                 'value' => ['message' => 'Resource not found.', 'status_code' => 0],
             ];
@@ -59,6 +73,8 @@ class ExampleFactory
 
         if ($route['throttle']) {
             $examples['rate_limited'] = [
+                'status' => 429,
+                'schema' => 'Error',
                 'summary' => '429 — over the limit of '.$route['throttle'],
                 'value' => ['message' => 'Too many attempts. Please try again later.', 'status_code' => 0],
             ];
@@ -69,6 +85,8 @@ class ExampleFactory
         // never reaches validation.
         if (! empty($route['query_builder'])) {
             $examples['bad_request'] = [
+                'status' => 400,
+                'schema' => 'Error',
                 'summary' => '400 — an unsupported sort or filter was requested',
                 'value' => [
                     'message' => 'Requested sort(s) `unknown` is not allowed.',
@@ -80,9 +98,15 @@ class ExampleFactory
         // Any endpoint can fail unexpectedly, and a client never shown the shape
         // will parse the 500 as though it were a result.
         $examples['server_error'] = [
+            'status' => 500,
+            'schema' => 'Error',
             'summary' => '500 — an unexpected server error',
             'value' => ['message' => 'Something went wrong. Please try again later.', 'status_code' => 0],
         ];
+
+        // Sorted by status so both builders emit the cases in the order a
+        // reader scans them, without either one holding a list of its own.
+        uasort($examples, fn ($a, $b) => $a['status'] <=> $b['status']);
 
         return $examples;
     }

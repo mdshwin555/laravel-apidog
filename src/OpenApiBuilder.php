@@ -271,35 +271,17 @@ class OpenApiBuilder
      */
     private function responses(array $route): array
     {
-        $examples = $this->examples->forRoute($route);
-        $ok = $route['method'] === 'POST' ? '201' : '200';
-
-        // Ordered by status so the Responses panel reads in the order a
-        // developer scans it, rather than in the order the cases were added.
-        $map = [
-            'success' => [$ok, 'Envelope'],
-            'bad_request' => ['400', 'Error'],
-            'unauthenticated' => ['401', 'Error'],
-            'forbidden' => ['403', 'Error'],
-            'not_found' => ['404', 'Error'],
-            'validation_failed' => ['422', 'ValidationError'],
-            'rate_limited' => ['429', 'Error'],
-            'server_error' => ['500', 'Error'],
-        ];
-
         $responses = [];
 
-        foreach ($map as $key => [$status, $schema]) {
-            if (! isset($examples[$key])) {
-                continue;
-            }
-
-            $responses[$status] = [
-                'description' => $examples[$key]['summary'],
+        // Each case names its own status and schema, so a new one appears here
+        // the moment the factory produces it — nothing to keep in step.
+        foreach ($this->examples->forRoute($route) as $example) {
+            $responses[(string) $example['status']] = [
+                'description' => $example['summary'],
                 'content' => [
                     'application/json' => [
-                        'schema' => ['$ref' => '#/components/schemas/'.$schema],
-                        'example' => $examples[$key]['value'],
+                        'schema' => ['$ref' => '#/components/schemas/'.$example['schema']],
+                        'example' => $example['value'],
                     ],
                 ],
             ];

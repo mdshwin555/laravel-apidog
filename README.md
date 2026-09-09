@@ -23,6 +23,7 @@ Files
   OpenAPI 3.1           project.openapi.json
   Postman collection    project.postman_collection.json
   Postman environment   project.postman_environment.json
+  JSON Schema           project.schemas.json
 
 Import
   Apidog   New project → Import → OpenAPI → pick the .openapi.json file
@@ -68,6 +69,8 @@ Student / Live Sessions / Attendance
 | 403 | حين لها صلاحية | باسم الصلاحية |
 | 404 | حين لها معامل مسار | |
 | 429 | حين لها حدّ معدّل | بالحدّ نفسه |
+| 500 | دائماً | بالشكل الذي لا يسرّب تفصيلاً داخلياً |
+| 400 | حين تُبنى الاستعلامات بـ spatie/laravel-query-builder | بترتيب أو فلتر غير مسموح |
 
 كل مثال مبنيّ من حقول النقطة نفسها، فيبدو كهذا المورد لا كقالب عام.
 
@@ -132,6 +135,17 @@ Guest    11 مجلد
 Admin    60 مجلد
 Student  19 مجلد
 ```
+
+---
+
+## ملف السكيما
+
+يُكتب مع كل توليد، بلا أمر إضافي: `project.schemas.json` بصيغة JSON Schema
+2020-12، يحمل شكل الغلاف والخطأ والتحقق، ومخططاً لكل نقطة تستقبل body.
+
+مشتق من مستند الـOpenAPI نفسه لا مبنيّ من جديد، فلا يمكن أن يصف النقطة نفسها
+بشكلين. يُقرأ مباشرةً من مولّدات العملاء وأدوات التحقق دون الحاجة إلى المواصفة
+كاملة.
 
 ---
 
