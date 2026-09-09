@@ -193,22 +193,34 @@ class CollectionBuilder
     {
         $codes = [
             'success' => $route['method'] === 'POST' ? 201 : 200,
-            'validation_failed' => 422,
+            'bad_request' => 400,
             'unauthenticated' => 401,
             'forbidden' => 403,
             'not_found' => 404,
+            'validation_failed' => 422,
             'rate_limited' => 429,
+            'server_error' => 500,
         ];
 
         $statusText = [
-            200 => 'OK', 201 => 'Created', 401 => 'Unauthorized',
-            403 => 'Forbidden', 404 => 'Not Found', 422 => 'Unprocessable Entity',
-            429 => 'Too Many Requests',
+            200 => 'OK', 201 => 'Created', 400 => 'Bad Request',
+            401 => 'Unauthorized', 403 => 'Forbidden', 404 => 'Not Found',
+            422 => 'Unprocessable Entity', 429 => 'Too Many Requests',
+            500 => 'Internal Server Error',
         ];
 
         $out = [];
 
         foreach ($this->examples->forRoute($route) as $key => $example) {
+            // A case the factory produces but this map has not been taught is
+            // skipped rather than fatal. The collection is worth having with
+            // one example missing, and a generator that dies on its own new
+            // case takes the whole run down with it — which is exactly what
+            // adding 400 and 500 to the factory did here.
+            if (! isset($codes[$key])) {
+                continue;
+            }
+
             $code = $codes[$key];
 
             $out[] = [
